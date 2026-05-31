@@ -1,0 +1,31 @@
+services:
+  app:
+    build: .
+    container_name: nx-tracker-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:18
+    container_name: nx-tracker-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: nxuser
+      POSTGRES_PASSWORD: nxpassword
+      POSTGRES_DB: nxtracker
+    volumes:
+      - nxtracker_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nxuser -d nxtracker"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  nxtracker_pgdata:

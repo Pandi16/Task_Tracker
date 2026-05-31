@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title><%= item.item_code %> - NX Services Tracker</title>
+  <link rel="stylesheet" href="/public/styles.css">
+</head>
+<body>
+  <%- include('partials-header') %>
+  <main class="container">
+    <section class="hero">
+      <div>
+        <h1><%= item.item_code %>: <%= item.title %></h1>
+        <p>Status: <strong><%= item.status %></strong> | Owner: <strong><%= item.owner_name || '-' %></strong> | Waiting For: <strong><%= item.waiting_for_name || '-' %></strong></p>
+      </div>
+    </section>
+
+    <section class="two-column wide-left">
+      <div class="panel">
+        <h2>Update Item</h2>
+        <form method="POST" action="/items/<%= item.id %>/update" class="form-grid">
+          <label>Title<input name="title" required value="<%= item.title %>"></label>
+          <label>Component<input name="component" value="<%= item.component || '' %>"></label>
+          <label>Priority<select name="priority"><% priorities.forEach(p => { %><option <%= item.priority === p ? 'selected' : '' %>><%= p %></option><% }) %></select></label>
+          <label>Status<select name="status"><% statuses.forEach(s => { %><option <%= item.status === s ? 'selected' : '' %>><%= s %></option><% }) %></select></label>
+          <label>Owner<select name="owner_id"><option value="">None</option><% users.forEach(u => { %><option value="<%= u.id %>" <%= item.owner_id === u.id ? 'selected' : '' %>><%= u.name %></option><% }) %></select></label>
+          <label>Waiting For<select name="waiting_for_id"><option value="">None</option><% users.forEach(u => { %><option value="<%= u.id %>" <%= item.waiting_for_id === u.id ? 'selected' : '' %>><%= u.name %></option><% }) %></select></label>
+          <label>Due Date<input name="due_date" type="date" value="<%= item.due_date ? item.due_date.toISOString().slice(0,10) : '' %>"></label>
+          <label>Reminder Date<input name="reminder_date" type="date" value="<%= item.reminder_date ? item.reminder_date.toISOString().slice(0,10) : '' %>"></label>
+          <label class="full">Description<textarea name="description" rows="5"><%= item.description || '' %></textarea></label>
+          <label class="full">Change Note<input name="change_note" placeholder="Example: Moved to Waiting For after client log verification"></label>
+          <button class="primary-button" type="submit">Save Changes</button>
+        </form>
+      </div>
+
+      <aside class="panel">
+        <h2>Activity</h2>
+        <% if (logs.length === 0) { %><p class="muted">No status changes yet.</p><% } %>
+        <% logs.forEach(log => { %>
+          <div class="timeline-item">
+            <strong><%= log.old_status || '-' %> → <%= log.new_status || '-' %></strong>
+            <p><%= log.change_note || 'No note' %></p>
+            <small><%= log.changed_by_name || 'System' %></small>
+          </div>
+        <% }) %>
+      </aside>
+    </section>
+
+    <section class="panel">
+      <h2>Comments</h2>
+      <% comments.forEach(comment => { %>
+        <div class="comment">
+          <strong><%= comment.user_name %></strong>
+          <p><%= comment.comment_text %></p>
+        </div>
+      <% }) %>
+      <form method="POST" action="/items/<%= item.id %>/comments" class="comment-form">
+        <textarea name="comment_text" rows="3" placeholder="Add update, finding, command output summary, or next action"></textarea>
+        <button>Add Comment</button>
+      </form>
+    </section>
+  </main>
+</body>
+</html>

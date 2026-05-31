@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Items - NX Services Tracker</title>
+  <link rel="stylesheet" href="/public/styles.css">
+</head>
+<body>
+  <%- include('partials-header') %>
+  <main class="container">
+    <section class="hero">
+      <div><h1>Items</h1><p>Search and filter all NX/services items.</p></div>
+      <a class="primary-link" href="/items/new">+ Create Item</a>
+    </section>
+
+    <form class="filters" method="GET" action="/items">
+      <input name="q" placeholder="Search title, code, component" value="<%= filters.q || '' %>">
+      <select name="status">
+        <option value="">All statuses</option>
+        <% statuses.forEach(s => { %><option value="<%= s %>" <%= filters.status === s ? 'selected' : '' %>><%= s %></option><% }) %>
+      </select>
+      <select name="priority">
+        <option value="">All priorities</option>
+        <% priorities.forEach(p => { %><option value="<%= p %>" <%= filters.priority === p ? 'selected' : '' %>><%= p %></option><% }) %>
+      </select>
+      <button>Filter</button>
+    </form>
+
+    <section class="panel">
+      <table>
+        <thead><tr><th>Code</th><th>Title</th><th>Component</th><th>Status</th><th>Owner</th><th>Waiting For</th><th>Due</th><th>Priority</th></tr></thead>
+        <tbody>
+          <% items.forEach(item => { %>
+            <tr>
+              <td><a href="/items/<%= item.id %>"><%= item.item_code %></a></td>
+              <td><%= item.title %></td>
+              <td><%= item.component || '-' %></td>
+              <td><span class="badge"><%= item.status %></span></td>
+              <td><%= item.owner_name || '-' %></td>
+              <td><%= item.waiting_for_name || '-' %></td>
+              <td><%= item.due_date ? item.due_date.toISOString().slice(0,10) : '-' %></td>
+              <td><%= item.priority %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

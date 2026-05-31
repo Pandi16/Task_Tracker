@@ -1,0 +1,74 @@
+:root {
+  --bg: #f5f7fb;
+  --panel: #ffffff;
+  --text: #172033;
+  --muted: #64748b;
+  --line: #e2e8f0;
+  --primary: #1f3a5f;
+  --primary-dark: #162b47;
+  --badge: #eef2ff;
+  --danger: #fee2e2;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Arial, sans-serif; background: var(--bg); color: var(--text); }
+a { color: var(--primary); text-decoration: none; }
+input, select, textarea { width: 100%; padding: 11px 12px; border: 1px solid var(--line); border-radius: 10px; font: inherit; }
+textarea { resize: vertical; }
+button, .primary-link, .primary-button { background: var(--primary); color: white; border: 0; border-radius: 10px; padding: 11px 14px; cursor: pointer; font-weight: 700; display: inline-block; }
+button:hover, .primary-link:hover, .primary-button:hover { background: var(--primary-dark); }
+
+.topbar { height: 64px; background: white; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; padding: 0 28px; position: sticky; top: 0; z-index: 10; }
+.brand { font-size: 18px; font-weight: 800; color: var(--text); }
+.topbar nav { display: flex; gap: 18px; }
+.topbar nav a { color: var(--muted); font-weight: 700; }
+.logout-form { display: flex; align-items: center; gap: 10px; }
+.logout-form button { padding: 8px 10px; background: #334155; }
+
+.container { max-width: 1180px; margin: 0 auto; padding: 28px; }
+.narrow { max-width: 850px; }
+.hero { background: linear-gradient(135deg, #ffffff, #eef3ff); border: 1px solid var(--line); border-radius: 20px; padding: 24px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.hero h1 { margin: 0 0 8px; }
+.hero p { margin: 0; color: var(--muted); }
+
+.grid { display: grid; gap: 14px; }
+.cards { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); margin-bottom: 20px; }
+.card, .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 8px 30px rgba(15, 23, 42, 0.05); }
+.small-card { padding: 18px; color: var(--text); }
+.small-card span { display: block; color: var(--muted); margin-bottom: 10px; }
+.small-card strong { font-size: 28px; }
+.panel { padding: 20px; margin-bottom: 20px; }
+.panel h2 { margin-top: 0; }
+.two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.wide-left { grid-template-columns: 2fr 1fr; }
+
+.filters { display: grid; grid-template-columns: 1fr 200px 200px 120px; gap: 12px; margin-bottom: 20px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.form-grid label, .stack-form label { color: var(--muted); font-weight: 700; display: grid; gap: 8px; }
+.form-grid .full { grid-column: 1 / -1; }
+.stack-form { display: grid; gap: 14px; }
+
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; border-bottom: 1px solid var(--line); padding: 12px 10px; vertical-align: top; }
+th { color: var(--muted); font-size: 13px; }
+.badge { background: var(--badge); color: var(--primary); border-radius: 999px; padding: 5px 9px; font-size: 12px; font-weight: 800; display: inline-block; }
+.waiting-row, .notification, .comment, .timeline-item { border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 10px; background: #fbfdff; }
+.waiting-row { display: flex; justify-content: space-between; align-items: center; }
+.notification p, .comment p, .timeline-item p { margin: 6px 0; }
+.muted { color: var(--muted); }
+.alert { background: var(--danger); padding: 10px; border-radius: 10px; margin-bottom: 14px; }
+.comment-form { display: grid; gap: 10px; margin-top: 16px; }
+
+.login-body { min-height: 100vh; display: grid; place-items: center; background: linear-gradient(135deg, #1f3a5f, #5d7aa0); }
+.login-card { width: 420px; background: white; border-radius: 20px; padding: 30px; box-shadow: 0 20px 70px rgba(0,0,0,0.2); }
+.login-card h1 { margin-top: 0; }
+.login-card form { display: grid; gap: 12px; }
+.login-card label { font-weight: 700; color: var(--muted); }
+.login-card button { margin-top: 6px; }
+
+@media (max-width: 800px) {
+  .topbar { height: auto; align-items: flex-start; gap: 14px; flex-direction: column; padding: 16px; }
+  .topbar nav { flex-wrap: wrap; }
+  .two-column, .wide-left, .filters, .form-grid { grid-template-columns: 1fr; }
+  .hero { flex-direction: column; align-items: flex-start; gap: 16px; }
+}

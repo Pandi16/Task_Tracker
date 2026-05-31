@@ -1,0 +1,18 @@
+<header class="topbar">
+  <div>
+    <a class="brand" href="/">NX Services Tracker</a>
+  </div>
+  <nav>
+    <a href="/">Dashboard</a>
+    <a href="/items">Items</a>
+    <a href="/waiting">Waiting For</a>
+    <a href="/items/new">Create Item</a>
+    <% if (currentUser && currentUser.role === 'admin') { %><a href="/users">Users</a><% } %>
+  </nav>
+  <% if (currentUser) { %>
+    <form method="POST" action="/logout" class="logout-form">
+      <span><%= currentUser.name %></span>
+      <button>Logout</button>
+    </form>
+  <% } %>
+</header>

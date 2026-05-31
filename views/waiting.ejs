@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Waiting For - NX Services Tracker</title>
+  <link rel="stylesheet" href="/public/styles.css">
+</head>
+<body>
+  <%- include('partials-header') %>
+  <main class="container">
+    <section class="hero"><div><h1>Waiting For</h1><p>See exactly who each item is pending with.</p></div></section>
+    <section class="panel">
+      <table>
+        <thead><tr><th>Waiting For</th><th>Code</th><th>Title</th><th>Owner</th><th>Due</th><th>Priority</th></tr></thead>
+        <tbody>
+          <% items.forEach(item => { %>
+            <tr>
+              <td><strong><%= item.waiting_for_name || 'Unassigned' %></strong></td>
+              <td><a href="/items/<%= item.id %>"><%= item.item_code %></a></td>
+              <td><%= item.title %></td>
+              <td><%= item.owner_name || '-' %></td>
+              <td><%= item.due_date ? item.due_date.toISOString().slice(0,10) : '-' %></td>
+              <td><%= item.priority %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

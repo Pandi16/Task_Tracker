@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Dashboard - NX Services Tracker</title>
+  <link rel="stylesheet" href="/public/styles.css">
+</head>
+<body>
+  <%- include('partials-header') %>
+  <main class="container">
+    <section class="hero">
+      <div>
+        <h1>Dashboard</h1>
+        <p>Track ownership, waiting status, and reminders for NX/services items.</p>
+      </div>
+      <a class="primary-link" href="/items/new">+ Create Item</a>
+    </section>
+
+    <section class="grid cards">
+      <% statuses.forEach(status => { const row = counts.find(c => c.status === status); %>
+        <a href="/items?status=<%= encodeURIComponent(status) %>" class="card small-card">
+          <span><%= status %></span>
+          <strong><%= row ? row.count : 0 %></strong>
+        </a>
+      <% }) %>
+    </section>
+
+    <section class="two-column">
+      <div class="panel">
+        <h2>Waiting For Summary</h2>
+        <% if (waiting.length === 0) { %><p class="muted">No items are currently waiting.</p><% } %>
+        <% waiting.forEach(row => { %>
+          <div class="waiting-row">
+            <strong><%= row.waiting_for || 'Unassigned' %></strong>
+            <span><%= row.count %> item(s)</span>
+          </div>
+        <% }) %>
+      </div>
+
+      <div class="panel">
+        <h2>My Notifications</h2>
+        <% if (notifications.length === 0) { %><p class="muted">No unread notifications.</p><% } %>
+        <% notifications.forEach(note => { %>
+          <div class="notification">
+            <p><%= note.message %></p>
+            <form method="POST" action="/notifications/<%= note.id %>/read"><button>Mark read</button></form>
+          </div>
+        <% }) %>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Recently Updated</h2>
+      <table>
+        <thead><tr><th>Code</th><th>Title</th><th>Status</th><th>Owner</th><th>Waiting For</th><th>Priority</th></tr></thead>
+        <tbody>
+          <% recent.forEach(item => { %>
+            <tr>
+              <td><a href="/items/<%= item.id %>"><%= item.item_code %></a></td>
+              <td><%= item.title %></td>
+              <td><span class="badge"><%= item.status %></span></td>
+              <td><%= item.owner_name || '-' %></td>
+              <td><%= item.waiting_for_name || '-' %></td>
+              <td><%= item.priority %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

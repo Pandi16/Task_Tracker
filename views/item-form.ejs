@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Create Item - NX Services Tracker</title>
+  <link rel="stylesheet" href="/public/styles.css">
+</head>
+<body>
+  <%- include('partials-header') %>
+  <main class="container narrow">
+    <section class="hero"><div><h1>Create Item</h1><p>Add a new NX/services work item.</p></div></section>
+    <section class="panel">
+      <form method="POST" action="/items" class="form-grid">
+        <label>Title<input name="title" required placeholder="Example: Trusted Store import crash"></label>
+        <label>Component<input name="component" placeholder="NX Services / Trusted Store"></label>
+        <label>Priority<select name="priority"><% priorities.forEach(p => { %><option><%= p %></option><% }) %></select></label>
+        <label>Status<select name="status"><% statuses.forEach(s => { %><option><%= s %></option><% }) %></select></label>
+        <label>Owner<select name="owner_id"><option value="">None</option><% users.forEach(u => { %><option value="<%= u.id %>"><%= u.name %></option><% }) %></select></label>
+        <label>Waiting For<select name="waiting_for_id"><option value="">None</option><% users.forEach(u => { %><option value="<%= u.id %>"><%= u.name %></option><% }) %></select></label>
+        <label>Due Date<input name="due_date" type="date"></label>
+        <label>Reminder Date<input name="reminder_date" type="date"></label>
+        <label class="full">Description<textarea name="description" rows="6" placeholder="Add logs, steps, links, or current findings"></textarea></label>
+        <button class="primary-button" type="submit">Create Item</button>
+      </form>
+    </section>
+  </main>
+</body>
+</html>

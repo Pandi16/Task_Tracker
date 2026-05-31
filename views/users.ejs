@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Users - NX Services Tracker</title>
+  <link rel="stylesheet" href="/public/styles.css">
+</head>
+<body>
+  <%- include('partials-header') %>
+  <main class="container">
+    <section class="hero"><div><h1>Users</h1><p>Add the 4-5 team members who will use the tracker.</p></div></section>
+    <section class="two-column">
+      <div class="panel">
+        <h2>Add User</h2>
+        <% if (error) { %><div class="alert"><%= error %></div><% } %>
+        <form method="POST" action="/users" class="stack-form">
+          <label>Name<input name="name" required></label>
+          <label>Email<input name="email" type="email" required></label>
+          <label>Role<select name="role"><option>member</option><option>viewer</option><option>admin</option></select></label>
+          <label>Password<input name="password" type="password" required></label>
+          <button class="primary-button">Add User</button>
+        </form>
+      </div>
+      <div class="panel">
+        <h2>Existing Users</h2>
+        <table>
+          <thead><tr><th>Name</th><th>Email</th><th>Role</th></tr></thead>
+          <tbody>
+            <% users.forEach(user => { %><tr><td><%= user.name %></td><td><%= user.email %></td><td><%= user.role %></td></tr><% }) %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
