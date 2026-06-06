@@ -8,7 +8,7 @@
   <%- include('partials-header') %>
   <main class="container">
     <section class="hero">
-      <div><h1>Items</h1><p>Search and filter all NX/services items.</p></div>
+      <div><h1>Items</h1><p>Search, filter, edit, and manage all NX/services items.</p></div>
       <a class="primary-link" href="/items/new">+ Create Item</a>
     </section>
 
@@ -27,7 +27,7 @@
 
     <section class="panel">
       <table>
-        <thead><tr><th>Code</th><th>Title</th><th>Component</th><th>Status</th><th>Owner</th><th>Waiting For</th><th>Due</th><th>Priority</th></tr></thead>
+        <thead><tr><th>Code</th><th>Title</th><th>Component</th><th>Status</th><th>Owner</th><th>Waiting For</th><th>Due</th><th>Priority</th><th>Actions</th></tr></thead>
         <tbody>
           <% items.forEach(item => { %>
             <tr>
@@ -39,6 +39,14 @@
               <td><%= item.waiting_for_name || '-' %></td>
               <td><%= item.due_date ? item.due_date.toISOString().slice(0,10) : '-' %></td>
               <td><%= item.priority %></td>
+              <td class="actions-cell">
+                <a class="mini-link" href="/items/<%= item.id %>/edit">Edit</a>
+                <% if (currentUser && currentUser.role === 'admin') { %>
+                  <form method="POST" action="/items/<%= item.id %>/delete" onsubmit="return confirm('Delete <%= item.item_code %>? This will remove the item, comments, activity logs, and notifications.');">
+                    <button class="danger-button" type="submit">Delete</button>
+                  </form>
+                <% } %>
+              </td>
             </tr>
           <% }) %>
         </tbody>

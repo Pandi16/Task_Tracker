@@ -6,7 +6,7 @@ const bcrypt = require('bcryptjs');
 const methodOverride = require('method-override');
 const { pool, query } = require('./db');
 const { initDb } = require('./initDb');
-const { notifyUser, startReminderJob } = require('./notifications');
+const { createNotification, notifyWaitingForItem, startReminderJob } = require('./notifications');
 require('dotenv').config();
 
 const app = express();
@@ -14,6 +14,7 @@ const PORT = Number(process.env.APP_PORT || 3000);
 
 const STATUSES = ['New', 'Triaged', 'Assigned', 'In Progress', 'Waiting For', 'Ready for Review', 'Completed', 'Blocked', 'Reopened', 'Cancelled'];
 const PRIORITIES = ['Low', 'Medium', 'High', 'Critical'];
+const ROLES = ['member', 'viewer', 'admin'];
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, '..', 'views'));
@@ -35,10 +36,30 @@ function requireLogin(req, res, next) {
   next();
 }
 
+function requireAdmin(req, res, next) {
+  if (!req.session.user || req.session.user.role !== 'admin') {
+    return res.status(403).send('Only admin can perform this action');
+  }
+  next();
+}
+
+function cleanOptionalId(value) {
+  return value ? Number(value) : null;
+}
+
+function cleanOptionalText(value) {
+  return value && value.trim() ? value.trim() : null;
+}
+
+function cleanOptionalDate(value) {
+  return value || null;
+}
+
 app.use((req, res, next) => {
   res.locals.currentUser = req.session.user || null;
   res.locals.statuses = STATUSES;
   res.locals.priorities = PRIORITIES;
+  res.locals.roles = ROLES;
   next();
 });
 
@@ -48,7 +69,7 @@ app.get('/login', (req, res) => {
 
 app.post('/login', async (req, res) => {
   const { email, password } = req.body;
-  const result = await query('SELECT * FROM users WHERE email = $1', [email]);
+  const result = await query('SELECT * FROM users WHERE email = $1 AND is_active = TRUE', [email]);
   const user = result.rows[0];
 
   if (!user || !(await bcrypt.compare(password, user.password_hash))) {
@@ -124,7 +145,7 @@ app.get('/items', requireLogin, async (req, res) => {
 });
 
 app.get('/items/new', requireLogin, async (req, res) => {
-  const users = await query('SELECT id, name FROM users ORDER BY name');
+  const users = await query('SELECT id, name FROM users WHERE is_active = TRUE ORDER BY name');
   res.render('item-form', { item: {}, users: users.rows, mode: 'create' });
 });
 
@@ -140,27 +161,36 @@ app.post('/items', requireLogin, async (req, res) => {
     RETURNING id, item_code
   `, [
     itemCode,
-    title,
-    description || null,
-    component || null,
+    title.trim(),
+    cleanOptionalText(description),
+    cleanOptionalText(component),
     priority || 'Medium',
     status || 'New',
-    owner_id || null,
-    waiting_for_id || null,
-    due_date || null,
-    reminder_date || null,
+    cleanOptionalId(owner_id),
+    cleanOptionalId(waiting_for_id),
+    cleanOptionalDate(due_date),
+    cleanOptionalDate(reminder_date),
     req.session.user.id
   ]);
 
   const newItem = result.rows[0];
   if (owner_id) {
-    await notifyUser(owner_id, newItem.id, `Assigned: ${newItem.item_code}`, `${newItem.item_code} has been assigned to you.`);
+    await createNotification(owner_id, newItem.id, `${newItem.item_code} has been assigned to you.`);
   }
   if (status === 'Waiting For' && waiting_for_id) {
-    await notifyUser(waiting_for_id, newItem.id, `Waiting for you: ${newItem.item_code}`, `${newItem.item_code} is waiting for your input.`);
+    await notifyWaitingForItem(newItem.id, 'created');
   }
 
   res.redirect(`/items/${newItem.id}`);
+});
+
+app.get('/items/:id/edit', requireLogin, async (req, res) => {
+  const itemResult = await query('SELECT * FROM items WHERE id = $1', [req.params.id]);
+  const item = itemResult.rows[0];
+  if (!item) return res.status(404).send('Item not found');
+
+  const users = await query('SELECT id, name FROM users WHERE is_active = TRUE ORDER BY name');
+  res.render('item-form', { item, users: users.rows, mode: 'edit' });
 });
 
 app.get('/items/:id', requireLogin, async (req, res) => {
@@ -175,7 +205,7 @@ app.get('/items/:id', requireLogin, async (req, res) => {
 
   if (!itemResult.rows[0]) return res.status(404).send('Item not found');
 
-  const users = await query('SELECT id, name FROM users ORDER BY name');
+  const users = await query('SELECT id, name FROM users WHERE is_active = TRUE ORDER BY name');
   const comments = await query(`
     SELECT c.*, u.name AS user_name
     FROM comments c
@@ -194,7 +224,7 @@ app.get('/items/:id', requireLogin, async (req, res) => {
   res.render('item-detail', { item: itemResult.rows[0], users: users.rows, comments: comments.rows, logs: logs.rows });
 });
 
-app.post('/items/:id/update', requireLogin, async (req, res) => {
+async function updateItem(req, res) {
   const existingResult = await query('SELECT * FROM items WHERE id = $1', [req.params.id]);
   const existing = existingResult.rows[0];
   if (!existing) return res.status(404).send('Item not found');
@@ -206,20 +236,46 @@ app.post('/items/:id/update', requireLogin, async (req, res) => {
     SET title=$1, description=$2, component=$3, priority=$4, status=$5, owner_id=$6, waiting_for_id=$7,
         due_date=$8, reminder_date=$9, updated_at=NOW()
     WHERE id=$10
-  `, [title, description, component, priority, status, owner_id || null, waiting_for_id || null, due_date || null, reminder_date || null, req.params.id]);
+  `, [
+    title.trim(),
+    cleanOptionalText(description),
+    cleanOptionalText(component),
+    priority,
+    status,
+    cleanOptionalId(owner_id),
+    cleanOptionalId(waiting_for_id),
+    cleanOptionalDate(due_date),
+    cleanOptionalDate(reminder_date),
+    req.params.id
+  ]);
 
   if (existing.status !== status) {
     await query(`
       INSERT INTO activity_log (item_id, changed_by, old_status, new_status, change_note)
       VALUES ($1, $2, $3, $4, $5)
-    `, [req.params.id, req.session.user.id, existing.status, status, change_note || null]);
+    `, [req.params.id, req.session.user.id, existing.status, status, cleanOptionalText(change_note)]);
   }
 
-  if (status === 'Waiting For' && waiting_for_id) {
-    await notifyUser(waiting_for_id, req.params.id, `Waiting for you: ${existing.item_code}`, `${existing.item_code} is now waiting for your input.`);
+  if (existing.owner_id !== cleanOptionalId(owner_id) && owner_id) {
+    await createNotification(owner_id, req.params.id, `${existing.item_code} has been assigned to you.`);
+  }
+
+  if (status === 'Waiting For' && waiting_for_id && (existing.status !== 'Waiting For' || existing.waiting_for_id !== cleanOptionalId(waiting_for_id))) {
+    await notifyWaitingForItem(req.params.id, existing.status === 'Waiting For' ? 'updated' : 'created');
   }
 
   res.redirect(`/items/${req.params.id}`);
+}
+
+app.post('/items/:id/update', requireLogin, updateItem);
+app.put('/items/:id', requireLogin, updateItem);
+
+app.post('/items/:id/delete', requireLogin, requireAdmin, async (req, res) => {
+  const item = await query('SELECT item_code FROM items WHERE id = $1', [req.params.id]);
+  if (!item.rows[0]) return res.status(404).send('Item not found');
+
+  await query('DELETE FROM items WHERE id = $1', [req.params.id]);
+  res.redirect('/items');
 });
 
 app.post('/items/:id/comments', requireLogin, async (req, res) => {
@@ -248,29 +304,72 @@ app.post('/notifications/:id/read', requireLogin, async (req, res) => {
   res.redirect('/');
 });
 
-app.get('/users', requireLogin, async (req, res) => {
-  if (req.session.user.role !== 'admin') return res.status(403).send('Only admin can manage users');
-  const users = await query('SELECT id, name, email, role, created_at FROM users ORDER BY name');
+app.get('/users', requireLogin, requireAdmin, async (req, res) => {
+  const users = await query('SELECT id, name, email, role, is_active, created_at FROM users ORDER BY is_active DESC, name');
   res.render('users', { users: users.rows, error: null });
 });
 
-app.post('/users', requireLogin, async (req, res) => {
-  if (req.session.user.role !== 'admin') return res.status(403).send('Only admin can manage users');
+app.post('/users', requireLogin, requireAdmin, async (req, res) => {
   const { name, email, role, password } = req.body;
   try {
     const hash = await bcrypt.hash(password, 10);
-    await query('INSERT INTO users (name, email, role, password_hash) VALUES ($1, $2, $3, $4)', [name, email, role || 'member', hash]);
+    await query('INSERT INTO users (name, email, role, password_hash, is_active) VALUES ($1, $2, $3, $4, TRUE)', [name.trim(), email.trim(), role || 'member', hash]);
     res.redirect('/users');
   } catch (err) {
-    const users = await query('SELECT id, name, email, role, created_at FROM users ORDER BY name');
+    const users = await query('SELECT id, name, email, role, is_active, created_at FROM users ORDER BY is_active DESC, name');
     res.render('users', { users: users.rows, error: err.message });
   }
+});
+
+app.post('/users/:id/update', requireLogin, requireAdmin, async (req, res) => {
+  const { name, email, role, password } = req.body;
+  const userId = Number(req.params.id);
+
+  if (!ROLES.includes(role)) {
+    return res.status(400).send('Invalid role');
+  }
+
+  if (password && password.trim()) {
+    const hash = await bcrypt.hash(password.trim(), 10);
+    await query(
+      'UPDATE users SET name=$1, email=$2, role=$3, password_hash=$4 WHERE id=$5',
+      [name.trim(), email.trim(), role, hash, userId]
+    );
+  } else {
+    await query(
+      'UPDATE users SET name=$1, email=$2, role=$3 WHERE id=$4',
+      [name.trim(), email.trim(), role, userId]
+    );
+  }
+
+  if (req.session.user.id === userId) {
+    req.session.user.name = name.trim();
+    req.session.user.email = email.trim();
+    req.session.user.role = role;
+  }
+
+  res.redirect('/users');
+});
+
+app.post('/users/:id/deactivate', requireLogin, requireAdmin, async (req, res) => {
+  const userId = Number(req.params.id);
+  if (req.session.user.id === userId) {
+    return res.status(400).send('You cannot deactivate your own account while logged in.');
+  }
+
+  await query('UPDATE users SET is_active = FALSE WHERE id = $1', [userId]);
+  res.redirect('/users');
+});
+
+app.post('/users/:id/activate', requireLogin, requireAdmin, async (req, res) => {
+  await query('UPDATE users SET is_active = TRUE WHERE id = $1', [req.params.id]);
+  res.redirect('/users');
 });
 
 initDb()
   .then(() => {
     startReminderJob();
-    app.listen(PORT, () => console.log(`NX Services Tracker running on port ${PORT}`));
+    app.listen(PORT, '0.0.0.0', () => console.log(`NX Services Tracker running on port ${PORT}`));
   })
   .catch((err) => {
     console.error('Startup failed:', err);

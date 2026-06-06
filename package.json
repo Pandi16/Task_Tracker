@@ -1,7 +1,7 @@
 {
   "name": "nx-services-tracker",
-  "version": "1.0.0",
-  "description": "Lightweight JIRA-style tracker for NX/services items",
+  "version": "1.0.3",
+  "description": "Lightweight NX/services tracker with Google Apps Script HTTPS email alerts and daily 10 AM reminder digests",
   "main": "src/server.js",
   "scripts": {
     "dev": "nodemon src/server.js",
@@ -16,7 +16,6 @@
     "express-session": "^1.18.1",
     "method-override": "^3.0.0",
     "node-cron": "^3.0.3",
-    "nodemailer": "^6.9.16",
     "pg": "^8.13.1"
   },
   "devDependencies": {

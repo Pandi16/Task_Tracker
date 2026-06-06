@@ -1,100 +1,73 @@
 # NX Services Tracker
 
-A lightweight internal JIRA-style tracker for NX/services items.
+Lightweight internal tracker for NX/services work items.
 
-## Features
+## Main features
 
-- Login
-- Add 4-5 team users
-- Create NX work items
-- Status workflow
-- Owner tracking
-- Waiting For tracking
-- Waiting For dashboard
-- Comments
-- Activity log
+- Login and user management
+- Create, edit, and delete work items
+- Track owner, status, priority, component, due date, and waiting-for person
+- Waiting-for dashboard grouped by person
+- Comments and activity history
 - In-app notifications
-- Hourly overdue reminder job
-- Optional email notifications through SMTP
-- Docker-based VM hosting
+- Immediate email alert when an item is waiting for a user
+- Daily 10 AM user-wise reminder digest for all pending waiting-for items
+- Email delivery through Google Apps Script over HTTPS, so SMTP ports are not required
 
-## Recommended stack
+## Windows VM setup
 
-- Node.js + Express
-- PostgreSQL
-- EJS templates
-- Docker Compose
+Install Node.js, PostgreSQL, and NSSM. Then configure `.env`.
 
-## Run locally using Docker
-
-1. Copy environment file:
-
-```bash
-cp .env.example .env
-```
-
-2. Update `.env` values, especially:
-
-```bash
-SESSION_SECRET=change-this-long-secret
+```env
+SESSION_SECRET=nx-tracker-local-secret-change-later
+DATABASE_URL=postgres://nxuser:NxStrongPassword123@127.0.0.1:5432/nxtracker
+ADMIN_NAME=Admin
 ADMIN_EMAIL=admin@example.com
 ADMIN_PASSWORD=ChangeMe123!
+
+APPS_SCRIPT_WEBAPP_URL=https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec
+APPS_SCRIPT_SECRET=use-the-same-secret-from-google-apps-script
+MAIL_FROM_NAME=NX Tracker
+
+DAILY_REMINDER_HOUR=10
+DAILY_REMINDER_MINUTE=0
 ```
 
-3. Start the app:
+Start manually:
 
-```bash
-docker compose up --build -d
+```powershell
+npm install
+npm start
 ```
 
-4. Open:
+For production on Windows, run `src/server.js` as a Windows service using NSSM.
 
-```text
-http://localhost:3000
-```
+## Google Apps Script mailer setup
 
-5. Login using the admin email/password from `.env`.
+1. Create or use a Gmail/Google account dedicated to the tracker, for example `nxtracker.alerts@gmail.com`.
+2. Open Google Apps Script.
+3. Create a new project.
+4. Copy the code from `scripts/google-apps-script-mailer.js` into the Apps Script editor.
+5. Replace `CHANGE_THIS_TO_A_LONG_RANDOM_SECRET` with a long random value.
+6. Click Deploy > New deployment > Web app.
+7. Use these deployment settings:
+   - Execute as: Me
+   - Who has access: Anyone
+8. Authorize the script when Google asks.
+9. Copy the Web app URL ending with `/exec`.
+10. Put the URL in `APPS_SCRIPT_WEBAPP_URL` and the same secret in `APPS_SCRIPT_SECRET` in your tracker `.env`.
+11. Restart the tracker service.
 
-## VM hosting
+## Email behavior
 
-On the VM:
+Immediate email:
 
-```bash
-git clone <your-repo-url>
-cd nx-services-tracker
-cp .env.example .env
-nano .env
-docker compose up --build -d
-```
+- Sent when an item is created or updated as `Waiting For`.
+- Sent only to the selected waiting-for user.
 
-Allow port 3000 in firewall or place Nginx in front of it.
+Daily digest:
 
-## Email notifications
-
-Add SMTP details in `.env`:
-
-```bash
-SMTP_HOST=smtp.example.com
-SMTP_PORT=587
-SMTP_USER=user@example.com
-SMTP_PASS=password
-SMTP_FROM=NX Tracker <no-reply@example.com>
-```
-
-If SMTP is not configured, in-app notifications still work.
-
-## Suggested first users
-
-Create users from the Admin `Users` page:
-
-- Harsha
-- Praveen
-- Ashok
-- Testing Team
-- Server Team
-
-## Main workflow
-
-New → Triaged → Assigned → In Progress → Waiting For → Ready for Review → Completed
-
-Extra states: Blocked, Reopened, Cancelled.
+- Runs every 15 minutes internally.
+- Once the configured reminder time is reached, default 10:00 AM VM local time, each waiting-for user receives one email listing all tasks waiting for them.
+- A user receives at most one daily digest per day.
+- Items stop appearing in the digest once their status is changed from `Waiting For`, such as `Completed`.

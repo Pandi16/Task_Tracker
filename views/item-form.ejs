@@ -1,25 +1,36 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Create Item - NX Services Tracker</title>
+  <title><%= mode === 'edit' ? 'Edit Item' : 'Create Item' %> - NX Services Tracker</title>
   <link rel="stylesheet" href="/public/styles.css">
 </head>
 <body>
   <%- include('partials-header') %>
   <main class="container narrow">
-    <section class="hero"><div><h1>Create Item</h1><p>Add a new NX/services work item.</p></div></section>
+    <section class="hero">
+      <div>
+        <h1><%= mode === 'edit' ? `Edit ${item.item_code}` : 'Create Item' %></h1>
+        <p><%= mode === 'edit' ? 'Update item details, ownership, waiting status, due date, and reminder date.' : 'Add a new NX/services work item.' %></p>
+      </div>
+      <% if (mode === 'edit') { %>
+        <a class="primary-link secondary" href="/items/<%= item.id %>">Back to Item</a>
+      <% } %>
+    </section>
     <section class="panel">
-      <form method="POST" action="/items" class="form-grid">
-        <label>Title<input name="title" required placeholder="Example: Trusted Store import crash"></label>
-        <label>Component<input name="component" placeholder="NX Services / Trusted Store"></label>
-        <label>Priority<select name="priority"><% priorities.forEach(p => { %><option><%= p %></option><% }) %></select></label>
-        <label>Status<select name="status"><% statuses.forEach(s => { %><option><%= s %></option><% }) %></select></label>
-        <label>Owner<select name="owner_id"><option value="">None</option><% users.forEach(u => { %><option value="<%= u.id %>"><%= u.name %></option><% }) %></select></label>
-        <label>Waiting For<select name="waiting_for_id"><option value="">None</option><% users.forEach(u => { %><option value="<%= u.id %>"><%= u.name %></option><% }) %></select></label>
-        <label>Due Date<input name="due_date" type="date"></label>
-        <label>Reminder Date<input name="reminder_date" type="date"></label>
-        <label class="full">Description<textarea name="description" rows="6" placeholder="Add logs, steps, links, or current findings"></textarea></label>
-        <button class="primary-button" type="submit">Create Item</button>
+      <form method="POST" action="<%= mode === 'edit' ? `/items/${item.id}/update` : '/items' %>" class="form-grid">
+        <label>Title<input name="title" required placeholder="Example: Trusted Store import crash" value="<%= item.title || '' %>"></label>
+        <label>Component<input name="component" placeholder="NX Services / Trusted Store" value="<%= item.component || '' %>"></label>
+        <label>Priority<select name="priority"><% priorities.forEach(p => { %><option <%= (item.priority || 'Medium') === p ? 'selected' : '' %>><%= p %></option><% }) %></select></label>
+        <label>Status<select name="status"><% statuses.forEach(s => { %><option <%= (item.status || 'New') === s ? 'selected' : '' %>><%= s %></option><% }) %></select></label>
+        <label>Owner<select name="owner_id"><option value="">None</option><% users.forEach(u => { %><option value="<%= u.id %>" <%= item.owner_id === u.id ? 'selected' : '' %>><%= u.name %></option><% }) %></select></label>
+        <label>Waiting For<select name="waiting_for_id"><option value="">None</option><% users.forEach(u => { %><option value="<%= u.id %>" <%= item.waiting_for_id === u.id ? 'selected' : '' %>><%= u.name %></option><% }) %></select></label>
+        <label>Due Date<input name="due_date" type="date" value="<%= item.due_date ? item.due_date.toISOString().slice(0,10) : '' %>"></label>
+        <label>Reminder Date<input name="reminder_date" type="date" value="<%= item.reminder_date ? item.reminder_date.toISOString().slice(0,10) : '' %>"></label>
+        <label class="full">Description<textarea name="description" rows="6" placeholder="Add logs, steps, links, or current findings"><%= item.description || '' %></textarea></label>
+        <% if (mode === 'edit') { %>
+          <label class="full">Change Note<input name="change_note" placeholder="Example: Updated waiting owner after server-side validation"></label>
+        <% } %>
+        <button class="primary-button" type="submit"><%= mode === 'edit' ? 'Save Changes' : 'Create Item' %></button>
       </form>
     </section>
   </main>

@@ -72,3 +72,20 @@ th { color: var(--muted); font-size: 13px; }
   .two-column, .wide-left, .filters, .form-grid { grid-template-columns: 1fr; }
   .hero { flex-direction: column; align-items: flex-start; gap: 16px; }
 }
+
+.hero-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.secondary { background: #475569; }
+.danger-button { background: #b91c1c; color: white; border: 0; border-radius: 10px; padding: 8px 10px; cursor: pointer; font-weight: 700; display: inline-block; }
+.danger-button:hover { background: #7f1d1d; }
+.danger-button.large { padding: 11px 14px; }
+.primary-button.compact { padding: 8px 10px; }
+.actions-cell, .row-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.actions-cell form, .hero-actions form, .row-actions form { margin: 0; }
+.mini-link { background: #e2e8f0; color: var(--text); border-radius: 10px; padding: 8px 10px; font-weight: 700; display: inline-block; }
+.inline-user-form { display: grid; grid-template-columns: 1fr 1.4fr 120px 90px 1.4fr; gap: 8px; align-items: center; margin-bottom: 8px; }
+.user-actions { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.inactive-row { opacity: 0.65; }
+.danger-badge { background: #fee2e2; color: #991b1b; }
+@media (max-width: 1000px) {
+  .inline-user-form { grid-template-columns: 1fr; }
+}

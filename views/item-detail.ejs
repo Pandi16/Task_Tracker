@@ -12,11 +12,19 @@
         <h1><%= item.item_code %>: <%= item.title %></h1>
         <p>Status: <strong><%= item.status %></strong> | Owner: <strong><%= item.owner_name || '-' %></strong> | Waiting For: <strong><%= item.waiting_for_name || '-' %></strong></p>
       </div>
+      <div class="hero-actions">
+        <a class="primary-link" href="/items/<%= item.id %>/edit">Edit Item</a>
+        <% if (currentUser && currentUser.role === 'admin') { %>
+          <form method="POST" action="/items/<%= item.id %>/delete" onsubmit="return confirm('Delete <%= item.item_code %>? This cannot be undone.');">
+            <button class="danger-button large" type="submit">Delete</button>
+          </form>
+        <% } %>
+      </div>
     </section>
 
     <section class="two-column wide-left">
       <div class="panel">
-        <h2>Update Item</h2>
+        <h2>Quick Update</h2>
         <form method="POST" action="/items/<%= item.id %>/update" class="form-grid">
           <label>Title<input name="title" required value="<%= item.title %>"></label>
           <label>Component<input name="component" value="<%= item.component || '' %>"></label>

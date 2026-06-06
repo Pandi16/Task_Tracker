@@ -10,9 +10,12 @@ async function initDb() {
       email VARCHAR(180) UNIQUE NOT NULL,
       role VARCHAR(30) NOT NULL DEFAULT 'member',
       password_hash TEXT NOT NULL,
+      is_active BOOLEAN NOT NULL DEFAULT TRUE,
       created_at TIMESTAMP NOT NULL DEFAULT NOW()
     );
   `);
+
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;`);
 
   await query(`
     CREATE TABLE IF NOT EXISTS items (
