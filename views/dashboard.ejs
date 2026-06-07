@@ -49,17 +49,21 @@
     </section>
 
     <section class="panel">
-      <h2>Recently Updated</h2>
+      <h2>Recently Updated <span class="muted small-text">Latest <%= recentItemsLimit %></span></h2>
       <table>
-        <thead><tr><th>Code</th><th>Title</th><th>Status</th><th>Owner</th><th>Waiting For</th><th>Priority</th></tr></thead>
+        <thead><tr><th>Code</th><th>Title</th><th>Status</th><th>Owner</th><th>Waiting For</th><th>Due</th><th>Priority</th></tr></thead>
         <tbody>
           <% recent.forEach(item => { %>
-            <tr>
+            <tr class="<%= item.due_state === 'overdue' ? 'row-overdue' : item.due_state === 'due_soon' ? 'row-due-soon' : '' %>">
               <td><a href="/items/<%= item.id %>"><%= item.item_code %></a></td>
               <td><%= item.title %></td>
               <td><span class="badge"><%= item.status %></span></td>
               <td><%= item.owner_name || '-' %></td>
               <td><%= item.waiting_for_name || '-' %></td>
+              <td>
+                <%= formatDateOnly(item.due_date) || '-' %>
+                <% if (getDueBadgeLabel(item.due_state)) { %><span class="due-label <%= item.due_state %>"><%= getDueBadgeLabel(item.due_state) %></span><% } %>
+              </td>
               <td><%= item.priority %></td>
             </tr>
           <% }) %>

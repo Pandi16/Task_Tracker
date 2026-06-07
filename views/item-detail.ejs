@@ -11,6 +11,7 @@
       <div>
         <h1><%= item.item_code %>: <%= item.title %></h1>
         <p>Status: <strong><%= item.status %></strong> | Owner: <strong><%= item.owner_name || '-' %></strong> | Waiting For: <strong><%= item.waiting_for_name || '-' %></strong></p>
+        <% if (getDueBadgeLabel(item.due_state)) { %><p><span class="due-label <%= item.due_state %>"><%= getDueBadgeLabel(item.due_state) %></span> Due date: <%= formatDateOnly(item.due_date) || '-' %></p><% } %>
       </div>
       <div class="hero-actions">
         <a class="primary-link" href="/items/<%= item.id %>/edit">Edit Item</a>
@@ -25,15 +26,18 @@
     <section class="two-column wide-left">
       <div class="panel">
         <h2>Quick Update</h2>
+        <% if (error) { %><div class="alert"><%= error %></div><% } %>
         <form method="POST" action="/items/<%= item.id %>/update" class="form-grid">
           <label>Title<input name="title" required value="<%= item.title %>"></label>
-          <label>Component<input name="component" value="<%= item.component || '' %>"></label>
+          <label>Component
+            <input value="<%= componentName %>" readonly>
+            <input type="hidden" name="component" value="<%= componentName %>">
+          </label>
           <label>Priority<select name="priority"><% priorities.forEach(p => { %><option <%= item.priority === p ? 'selected' : '' %>><%= p %></option><% }) %></select></label>
           <label>Status<select name="status"><% statuses.forEach(s => { %><option <%= item.status === s ? 'selected' : '' %>><%= s %></option><% }) %></select></label>
           <label>Owner<select name="owner_id"><option value="">None</option><% users.forEach(u => { %><option value="<%= u.id %>" <%= item.owner_id === u.id ? 'selected' : '' %>><%= u.name %></option><% }) %></select></label>
           <label>Waiting For<select name="waiting_for_id"><option value="">None</option><% users.forEach(u => { %><option value="<%= u.id %>" <%= item.waiting_for_id === u.id ? 'selected' : '' %>><%= u.name %></option><% }) %></select></label>
-          <label>Due Date<input name="due_date" type="date" value="<%= item.due_date ? item.due_date.toISOString().slice(0,10) : '' %>"></label>
-          <label>Reminder Date<input name="reminder_date" type="date" value="<%= item.reminder_date ? item.reminder_date.toISOString().slice(0,10) : '' %>"></label>
+          <label>Due Date<input name="due_date" type="date" value="<%= formatDateOnly(item.due_date) %>"></label>
           <label class="full">Description<textarea name="description" rows="5"><%= item.description || '' %></textarea></label>
           <label class="full">Change Note<input name="change_note" placeholder="Example: Moved to Waiting For after client log verification"></label>
           <button class="primary-button" type="submit">Save Changes</button>

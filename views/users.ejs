@@ -7,46 +7,48 @@
 <body>
   <%- include('partials-header') %>
   <main class="container">
-    <section class="hero"><div><h1>Users</h1><p>Add, update, deactivate, or reactivate tracker users.</p></div></section>
+    <section class="hero"><div><h1>Users</h1><p>Add, update, delete, or reset tracker users.</p></div></section>
     <section class="two-column">
       <div class="panel">
         <h2>Add User</h2>
         <% if (error) { %><div class="alert"><%= error %></div><% } %>
+        <% if (success) { %><div class="success"><%= success %></div><% } %>
         <form method="POST" action="/users" class="stack-form">
           <label>Name<input name="name" required></label>
           <label>Email<input name="email" type="email" required></label>
           <label>Role<select name="role"><% roles.forEach(role => { %><option><%= role %></option><% }) %></select></label>
-          <label>Password<input name="password" type="password" required></label>
+          <label>Password<input name="password" type="password" required minlength="8"></label>
           <button class="primary-button">Add User</button>
         </form>
       </div>
-      <div class="panel">
+      <div class="panel users-panel">
         <h2>Existing Users</h2>
-        <p class="muted">Delete is handled as deactivate so old item history is preserved.</p>
+        <p class="muted">Delete removes login access. Old item ownership is cleared and old comments show as “Deleted user”. Password reset for another user is allowed only from <strong><%= superAdminEmail %></strong>.</p>
         <table>
           <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
           <tbody>
             <% users.forEach(user => { %>
-              <tr class="<%= user.is_active ? '' : 'inactive-row' %>">
+              <tr>
                 <td colspan="5">
                   <form method="POST" action="/users/<%= user.id %>/update" class="inline-user-form">
                     <input name="name" required value="<%= user.name %>">
                     <input name="email" type="email" required value="<%= user.email %>">
                     <select name="role"><% roles.forEach(role => { %><option <%= user.role === role ? 'selected' : '' %>><%= role %></option><% }) %></select>
-                    <span class="badge <%= user.is_active ? '' : 'danger-badge' %>"><%= user.is_active ? 'Active' : 'Inactive' %></span>
-                    <div class="user-actions">
-                      <input name="password" type="password" placeholder="New password optional">
-                      <button type="submit">Update</button>
-                    </div>
+                    <span class="badge"><%= user.is_active ? 'Active' : 'Inactive' %></span>
+                    <button type="submit">Update</button>
                   </form>
-                  <div class="row-actions">
-                    <% if (user.is_active) { %>
-                      <form method="POST" action="/users/<%= user.id %>/deactivate" onsubmit="return confirm('Deactivate <%= user.name %>? They will not be able to log in.');">
-                        <button class="danger-button" type="submit">Deactivate</button>
+
+                  <div class="row-actions user-row-extra">
+                    <% if (currentUser && currentUser.email === superAdminEmail) { %>
+                      <form method="POST" action="/users/<%= user.id %>/password" class="password-reset-form">
+                        <input name="password" type="password" placeholder="New password" minlength="8" required>
+                        <button type="submit">Change Password</button>
                       </form>
-                    <% } else { %>
-                      <form method="POST" action="/users/<%= user.id %>/activate">
-                        <button class="primary-button compact" type="submit">Reactivate</button>
+                    <% } %>
+
+                    <% if (currentUser && currentUser.id !== user.id && user.email !== superAdminEmail) { %>
+                      <form method="POST" action="/users/<%= user.id %>/delete" onsubmit="return confirm('Delete <%= user.name %>? Old items will remain, but ownership/waiting-for references to this user will be cleared.');">
+                        <button class="danger-button" type="submit">Delete</button>
                       </form>
                     <% } %>
                   </div>

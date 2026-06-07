@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>My Password - NX Services Tracker</title>
+  <link rel="stylesheet" href="/public/styles.css">
+</head>
+<body>
+  <%- include('partials-header') %>
+  <main class="container narrow">
+    <section class="hero">
+      <div>
+        <h1>My Password</h1>
+        <p>Change your own tracker password.</p>
+      </div>
+    </section>
+
+    <section class="panel">
+      <% if (error) { %><div class="alert"><%= error %></div><% } %>
+      <% if (success) { %><div class="success"><%= success %></div><% } %>
+      <form method="POST" action="/profile/password" class="stack-form">
+        <label>Current Password<input name="current_password" type="password" required></label>
+        <label>New Password<input name="new_password" type="password" required minlength="8"></label>
+        <label>Confirm New Password<input name="confirm_password" type="password" required minlength="8"></label>
+        <button class="primary-button">Change Password</button>
+      </form>
+    </section>
+  </main>
+</body>
+</html>

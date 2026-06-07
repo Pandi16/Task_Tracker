@@ -1,7 +1,7 @@
 {
   "name": "nx-services-tracker",
-  "version": "1.0.3",
-  "description": "Lightweight NX/services tracker with Google Apps Script HTTPS email alerts and daily 10 AM reminder digests",
+  "version": "1.0.4",
+  "description": "Lightweight NX/services tracker with Apps Script email, daily digest, due highlighting, user deletion, and password controls",
   "main": "src/server.js",
   "scripts": {
     "dev": "nodemon src/server.js",

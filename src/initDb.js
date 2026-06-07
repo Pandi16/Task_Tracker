@@ -25,7 +25,7 @@ async function initDb() {
       description TEXT,
       component VARCHAR(120),
       priority VARCHAR(20) NOT NULL DEFAULT 'Medium',
-      status VARCHAR(40) NOT NULL DEFAULT 'New',
+      status VARCHAR(40) NOT NULL DEFAULT 'Waiting For',
       owner_id INTEGER REFERENCES users(id),
       waiting_for_id INTEGER REFERENCES users(id),
       due_date DATE,
@@ -40,11 +40,15 @@ async function initDb() {
     CREATE TABLE IF NOT EXISTS comments (
       id SERIAL PRIMARY KEY,
       item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
-      user_id INTEGER NOT NULL REFERENCES users(id),
+      user_id INTEGER REFERENCES users(id),
       comment_text TEXT NOT NULL,
       created_at TIMESTAMP NOT NULL DEFAULT NOW()
     );
   `);
+
+  // Existing installs may have comments.user_id as NOT NULL from older versions.
+  // We allow NULL so a user can be deleted while preserving old comments as "Deleted user".
+  await query(`ALTER TABLE comments ALTER COLUMN user_id DROP NOT NULL;`);
 
   await query(`
     CREATE TABLE IF NOT EXISTS notifications (
@@ -66,6 +70,16 @@ async function initDb() {
       new_status VARCHAR(40),
       change_note TEXT,
       created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    );
+  `);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS daily_digest_log (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      sent_on DATE NOT NULL DEFAULT CURRENT_DATE,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      UNIQUE (user_id, sent_on)
     );
   `);
 

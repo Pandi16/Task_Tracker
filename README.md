@@ -71,3 +71,16 @@ Daily digest:
 - Once the configured reminder time is reached, default 10:00 AM VM local time, each waiting-for user receives one email listing all tasks waiting for them.
 - A user receives at most one daily digest per day.
 - Items stop appearing in the digest once their status is changed from `Waiting For`, such as `Completed`.
+
+
+## Daily reminder timezone
+
+Daily reminder emails are based on `DAILY_REMINDER_TIMEZONE`, not the VM clock. To send the reminder at 10:00 AM IST even when the VM is in a US timezone, use:
+
+```env
+DAILY_REMINDER_TIMEZONE=Asia/Kolkata
+DAILY_REMINDER_HOUR=10
+DAILY_REMINDER_MINUTE=0
+```
+
+The scheduler checks every 15 minutes and sends one digest per user per configured timezone date.

@@ -30,14 +30,17 @@
         <thead><tr><th>Code</th><th>Title</th><th>Component</th><th>Status</th><th>Owner</th><th>Waiting For</th><th>Due</th><th>Priority</th><th>Actions</th></tr></thead>
         <tbody>
           <% items.forEach(item => { %>
-            <tr>
+            <tr class="<%= item.due_state === 'overdue' ? 'row-overdue' : item.due_state === 'due_soon' ? 'row-due-soon' : '' %>">
               <td><a href="/items/<%= item.id %>"><%= item.item_code %></a></td>
               <td><%= item.title %></td>
               <td><%= item.component || '-' %></td>
               <td><span class="badge"><%= item.status %></span></td>
               <td><%= item.owner_name || '-' %></td>
               <td><%= item.waiting_for_name || '-' %></td>
-              <td><%= item.due_date ? item.due_date.toISOString().slice(0,10) : '-' %></td>
+              <td>
+                <%= formatDateOnly(item.due_date) || '-' %>
+                <% if (getDueBadgeLabel(item.due_state)) { %><span class="due-label <%= item.due_state %>"><%= getDueBadgeLabel(item.due_state) %></span><% } %>
+              </td>
               <td><%= item.priority %></td>
               <td class="actions-cell">
                 <a class="mini-link" href="/items/<%= item.id %>/edit">Edit</a>

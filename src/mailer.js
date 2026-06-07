@@ -4,7 +4,7 @@ function isEmailConfigured() {
   return Boolean(process.env.APPS_SCRIPT_WEBAPP_URL && process.env.APPS_SCRIPT_SECRET);
 }
 
-async function sendEmail(to, subject, text) {
+async function sendEmail(to, subject, text, htmlBody = null) {
   if (!isEmailConfigured()) return false;
 
   const response = await fetch(process.env.APPS_SCRIPT_WEBAPP_URL, {
@@ -17,6 +17,7 @@ async function sendEmail(to, subject, text) {
       to,
       subject,
       body: text,
+      htmlBody,
       fromName: process.env.MAIL_FROM_NAME || 'NX Tracker'
     })
   });

@@ -9,26 +9,27 @@
   <main class="container narrow">
     <section class="hero">
       <div>
-        <h1><%= mode === 'edit' ? `Edit ${item.item_code}` : 'Create Item' %></h1>
-        <p><%= mode === 'edit' ? 'Update item details, ownership, waiting status, due date, and reminder date.' : 'Add a new NX/services work item.' %></p>
+        <h1><%= mode === 'edit' ? 'Edit Item' : 'Create Item' %></h1>
+        <p><%= mode === 'edit' ? 'Update the NX/services work item.' : 'Add a new NX/services work item.' %></p>
       </div>
-      <% if (mode === 'edit') { %>
-        <a class="primary-link secondary" href="/items/<%= item.id %>">Back to Item</a>
-      <% } %>
     </section>
+
     <section class="panel">
+      <% if (error) { %><div class="alert"><%= error %></div><% } %>
       <form method="POST" action="<%= mode === 'edit' ? `/items/${item.id}/update` : '/items' %>" class="form-grid">
-        <label>Title<input name="title" required placeholder="Example: Trusted Store import crash" value="<%= item.title || '' %>"></label>
-        <label>Component<input name="component" placeholder="NX Services / Trusted Store" value="<%= item.component || '' %>"></label>
+        <label>Title<input name="title" required placeholder="Example: IC verification pending" value="<%= item.title || '' %>"></label>
+        <label>Component
+          <input value="<%= componentName %>" readonly>
+          <input type="hidden" name="component" value="<%= componentName %>">
+        </label>
         <label>Priority<select name="priority"><% priorities.forEach(p => { %><option <%= (item.priority || 'Medium') === p ? 'selected' : '' %>><%= p %></option><% }) %></select></label>
-        <label>Status<select name="status"><% statuses.forEach(s => { %><option <%= (item.status || 'New') === s ? 'selected' : '' %>><%= s %></option><% }) %></select></label>
-        <label>Owner<select name="owner_id"><option value="">None</option><% users.forEach(u => { %><option value="<%= u.id %>" <%= item.owner_id === u.id ? 'selected' : '' %>><%= u.name %></option><% }) %></select></label>
-        <label>Waiting For<select name="waiting_for_id"><option value="">None</option><% users.forEach(u => { %><option value="<%= u.id %>" <%= item.waiting_for_id === u.id ? 'selected' : '' %>><%= u.name %></option><% }) %></select></label>
-        <label>Due Date<input name="due_date" type="date" value="<%= item.due_date ? item.due_date.toISOString().slice(0,10) : '' %>"></label>
-        <label>Reminder Date<input name="reminder_date" type="date" value="<%= item.reminder_date ? item.reminder_date.toISOString().slice(0,10) : '' %>"></label>
-        <label class="full">Description<textarea name="description" rows="6" placeholder="Add logs, steps, links, or current findings"><%= item.description || '' %></textarea></label>
+        <label>Status<select name="status"><% (mode === 'create' ? createStatuses : statuses).forEach(s => { %><option <%= (item.status || 'Waiting For') === s ? 'selected' : '' %>><%= s %></option><% }) %></select></label>
+        <label>Owner<select name="owner_id"><option value="">None</option><% users.forEach(u => { %><option value="<%= u.id %>" <%= Number(item.owner_id) === u.id ? 'selected' : '' %>><%= u.name %></option><% }) %></select></label>
+        <label>Waiting For<select name="waiting_for_id"><option value="">None</option><% users.forEach(u => { %><option value="<%= u.id %>" <%= Number(item.waiting_for_id) === u.id ? 'selected' : '' %>><%= u.name %></option><% }) %></select></label>
+        <label>Due Date<input name="due_date" type="date" value="<%= formatDateOnly(item.due_date) %>"></label>
+        <label class="full">Description<textarea name="description" rows="6" placeholder="Add logs, steps, links, IC details, or current findings"><%= item.description || '' %></textarea></label>
         <% if (mode === 'edit') { %>
-          <label class="full">Change Note<input name="change_note" placeholder="Example: Updated waiting owner after server-side validation"></label>
+          <label class="full">Change Note<input name="change_note" placeholder="Example: Updated waiting person after checking the latest IC status"></label>
         <% } %>
         <button class="primary-button" type="submit"><%= mode === 'edit' ? 'Save Changes' : 'Create Item' %></button>
       </form>

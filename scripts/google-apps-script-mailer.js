@@ -22,15 +22,30 @@ function doPost(e) {
       return jsonResponse({ ok: false, error: 'Missing to, subject, or body' });
     }
 
-    MailApp.sendEmail({
+    const mailOptions = {
       to: data.to,
       subject: data.subject,
       body: data.body,
       name: data.fromName || 'NX Tracker'
-    });
+    };
+
+    if (data.htmlBody) {
+      mailOptions.htmlBody = data.htmlBody;
+    }
+
+    MailApp.sendEmail(mailOptions);
 
     return jsonResponse({ ok: true });
   } catch (err) {
     return jsonResponse({ ok: false, error: err.message });
   }
+}
+
+function testMail() {
+  MailApp.sendEmail({
+    to: 'your-email@example.com',
+    subject: 'NX Tracker Apps Script test',
+    body: 'MailApp authorization test',
+    name: 'NX Tracker'
+  });
 }
