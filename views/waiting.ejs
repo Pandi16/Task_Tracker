@@ -10,13 +10,14 @@
     <section class="hero"><div><h1>Waiting For</h1><p>See exactly who each item is pending with.</p></div></section>
     <section class="panel">
       <table>
-        <thead><tr><th>Waiting For</th><th>Code</th><th>Title</th><th>Owner</th><th>Due</th><th>Priority</th></tr></thead>
+        <thead><tr><th>Waiting For</th><th>Code</th><th>Title</th><th>Status</th><th>Owner</th><th>Due</th><th>Priority</th></tr></thead>
         <tbody>
           <% items.forEach(item => { %>
             <tr class="<%= item.due_state === 'overdue' ? 'row-overdue' : item.due_state === 'due_soon' ? 'row-due-soon' : '' %>">
               <td><strong><%= item.waiting_for_name || 'Unassigned' %></strong></td>
               <td><a href="/items/<%= item.id %>"><%= item.item_code %></a></td>
               <td><%= item.title %></td>
+              <td><span class="badge"><%= item.status %></span></td>
               <td><%= item.owner_name || '-' %></td>
               <td>
                 <%= formatDateOnly(item.due_date) || '-' %>

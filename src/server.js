@@ -17,7 +17,7 @@ const STATUSES = ['New', 'Triaged', 'Assigned', 'In Progress', 'Waiting For', 'R
 const CREATE_STATUSES = ['Waiting For', 'In Progress', 'Ready for Review', 'Completed', 'New'];
 const PRIORITIES = ['Low', 'Medium', 'High', 'Critical'];
 const ROLES = ['member', 'viewer', 'admin'];
-const SUPER_ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@example.com';
+const SUPER_ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'admin@example.com').trim().toLowerCase();
 const RECENT_ITEMS_LIMIT = Number(process.env.RECENT_ITEMS_LIMIT || 10);
 const REMINDER_TIMEZONE = /^[A-Za-z0-9_\/+-]+$/.test(process.env.DAILY_REMINDER_TIMEZONE || '')
   ? process.env.DAILY_REMINDER_TIMEZONE
@@ -106,10 +106,11 @@ app.get('/login', (req, res) => {
 
 app.post('/login', async (req, res) => {
   const { email, password } = req.body;
-  const result = await query('SELECT * FROM users WHERE email = $1 AND is_active = TRUE', [email]);
+  const normalizedEmail = (email || '').trim().toLowerCase();
+  const result = await query('SELECT * FROM users WHERE LOWER(email) = $1 AND is_active = TRUE', [normalizedEmail]);
   const user = result.rows[0];
 
-  if (!user || !(await bcrypt.compare(password, user.password_hash))) {
+  if (!user || !(await bcrypt.compare(password || '', user.password_hash))) {
     return res.render('login', { error: 'Invalid email or password' });
   }
 
@@ -127,7 +128,8 @@ app.get('/', requireLogin, async (req, res) => {
     SELECT u.name AS waiting_for, COUNT(i.id)::int AS count, MIN(i.updated_at) AS oldest
     FROM items i
     LEFT JOIN users u ON u.id = i.waiting_for_id
-    WHERE i.status = 'Waiting For'
+    WHERE i.waiting_for_id IS NOT NULL
+      AND i.status <> 'Completed'
     GROUP BY u.name
     ORDER BY count DESC
   `);
@@ -224,7 +226,7 @@ app.post('/items', requireLogin, async (req, res) => {
   if (owner_id) {
     await createNotification(owner_id, newItem.id, `${newItem.item_code} has been assigned to you.`);
   }
-  if (finalStatus === 'Waiting For' && waiting_for_id) {
+  if (waiting_for_id) {
     await notifyWaitingForItem(newItem.id, 'created');
   }
 
@@ -310,8 +312,9 @@ async function updateItem(req, res) {
     await createNotification(owner_id, req.params.id, `${existing.item_code} has been assigned to you.`);
   }
 
-  if (status === 'Waiting For' && waiting_for_id && (existing.status !== 'Waiting For' || existing.waiting_for_id !== cleanOptionalId(waiting_for_id))) {
-    await notifyWaitingForItem(req.params.id, existing.status === 'Waiting For' ? 'updated' : 'created');
+  const newWaitingForId = cleanOptionalId(waiting_for_id);
+  if (newWaitingForId && existing.waiting_for_id !== newWaitingForId) {
+    await notifyWaitingForItem(req.params.id, existing.waiting_for_id ? 'updated' : 'created');
   }
 
   res.redirect(`/items/${req.params.id}`);
@@ -343,7 +346,8 @@ app.get('/waiting', requireLogin, async (req, res) => {
     FROM items i
     LEFT JOIN users waiter ON waiter.id = i.waiting_for_id
     LEFT JOIN users owner ON owner.id = i.owner_id
-    WHERE i.status = 'Waiting For'
+    WHERE i.waiting_for_id IS NOT NULL
+      AND i.status <> 'Completed'
     ORDER BY waiter.name, i.due_date ASC NULLS LAST, i.updated_at ASC
   `);
   res.render('waiting', { items: result.rows });
@@ -386,9 +390,15 @@ app.get('/users', requireLogin, requireAdmin, async (req, res) => {
 
 app.post('/users', requireLogin, requireAdmin, async (req, res) => {
   const { name, email, role, password } = req.body;
+  const normalizedEmail = (email || '').trim().toLowerCase();
   try {
+    const duplicate = await query('SELECT id FROM users WHERE LOWER(email) = $1', [normalizedEmail]);
+    if (duplicate.rows.length > 0) {
+      throw new Error('A user with this email already exists.');
+    }
+
     const hash = await bcrypt.hash(password, 10);
-    await query('INSERT INTO users (name, email, role, password_hash, is_active) VALUES ($1, $2, $3, $4, TRUE)', [name.trim(), email.trim(), role || 'member', hash]);
+    await query('INSERT INTO users (name, email, role, password_hash, is_active) VALUES ($1, $2, $3, $4, TRUE)', [name.trim(), normalizedEmail, role || 'member', hash]);
     res.redirect('/users');
   } catch (err) {
     const users = await query('SELECT id, name, email, role, is_active, created_at FROM users ORDER BY name');
@@ -404,14 +414,20 @@ app.post('/users/:id/update', requireLogin, requireAdmin, async (req, res) => {
     return res.status(400).send('Invalid role');
   }
 
+  const normalizedEmail = (email || '').trim().toLowerCase();
+  const duplicate = await query('SELECT id FROM users WHERE LOWER(email) = $1 AND id <> $2', [normalizedEmail, userId]);
+  if (duplicate.rows.length > 0) {
+    return res.status(400).send('A different user already has this email.');
+  }
+
   await query(
     'UPDATE users SET name=$1, email=$2, role=$3 WHERE id=$4',
-    [name.trim(), email.trim(), role, userId]
+    [name.trim(), normalizedEmail, role, userId]
   );
 
   if (req.session.user.id === userId) {
     req.session.user.name = name.trim();
-    req.session.user.email = email.trim();
+    req.session.user.email = normalizedEmail;
     req.session.user.role = role;
   }
 
@@ -421,7 +437,7 @@ app.post('/users/:id/update', requireLogin, requireAdmin, async (req, res) => {
 app.post('/users/:id/password', requireLogin, async (req, res) => {
   const userId = Number(req.params.id);
   const { password } = req.body;
-  const canResetAnyPassword = req.session.user.email === SUPER_ADMIN_EMAIL;
+  const canResetAnyPassword = String(req.session.user.email || '').toLowerCase() === SUPER_ADMIN_EMAIL;
   const isOwnAccount = req.session.user.id === userId;
 
   if (!canResetAnyPassword && !isOwnAccount) {
@@ -449,7 +465,7 @@ app.post('/users/:id/delete', requireLogin, requireAdmin, async (req, res) => {
 
   const target = await query('SELECT email FROM users WHERE id = $1', [userId]);
   if (!target.rows[0]) return res.status(404).send('User not found');
-  if (target.rows[0].email === SUPER_ADMIN_EMAIL) {
+  if (String(target.rows[0].email || '').toLowerCase() === SUPER_ADMIN_EMAIL) {
     return res.status(400).send(`The main admin account (${SUPER_ADMIN_EMAIL}) cannot be deleted.`);
   }
 

@@ -5,13 +5,14 @@ Lightweight internal tracker for NX/services work items.
 ## Main features
 
 - Login and user management
+- Case-insensitive email login
 - Create, edit, and delete work items
 - Track owner, status, priority, component, due date, and waiting-for person
 - Waiting-for dashboard grouped by person
 - Comments and activity history
 - In-app notifications
-- Immediate email alert when an item is waiting for a user
-- Daily 10 AM user-wise reminder digest for all pending waiting-for items
+- Immediate email alert when the Waiting For field has a user, regardless of item status
+- Daily 10 AM IST/timezone-based user-wise reminder digest for all open items with a Waiting For user
 - Email delivery through Google Apps Script over HTTPS, so SMTP ports are not required
 
 ## Windows VM setup
@@ -29,6 +30,7 @@ APPS_SCRIPT_WEBAPP_URL=https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exe
 APPS_SCRIPT_SECRET=use-the-same-secret-from-google-apps-script
 MAIL_FROM_NAME=NX Tracker
 
+DAILY_REMINDER_TIMEZONE=Asia/Kolkata
 DAILY_REMINDER_HOUR=10
 DAILY_REMINDER_MINUTE=0
 ```
@@ -62,15 +64,16 @@ For production on Windows, run `src/server.js` as a Windows service using NSSM.
 
 Immediate email:
 
-- Sent when an item is created or updated as `Waiting For`.
+- Sent when an item is created with a selected `Waiting For` user, regardless of status.
+- Sent when the `Waiting For` user is changed on an existing item, regardless of status.
 - Sent only to the selected waiting-for user.
 
 Daily digest:
 
 - Runs every 15 minutes internally.
-- Once the configured reminder time is reached, default 10:00 AM VM local time, each waiting-for user receives one email listing all tasks waiting for them.
+- Once the configured reminder time is reached, default 10:00 AM in the configured timezone, each waiting-for user receives one email listing all open tasks assigned to them in the Waiting For field.
 - A user receives at most one daily digest per day.
-- Items stop appearing in the digest once their status is changed from `Waiting For`, such as `Completed`.
+- Items stop appearing in the digest once their status is changed to `Completed`, or the Waiting For field is cleared.
 
 
 ## Daily reminder timezone

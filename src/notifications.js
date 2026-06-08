@@ -266,7 +266,8 @@ async function getWaitingItemsGroupedByUser() {
     JOIN users waiter ON waiter.id = i.waiting_for_id
     LEFT JOIN users owner ON owner.id = i.owner_id
     LEFT JOIN users creator ON creator.id = i.created_by
-    WHERE i.status = 'Waiting For'
+    WHERE i.waiting_for_id IS NOT NULL
+      AND i.status <> 'Completed'
       AND waiter.is_active = TRUE
     ORDER BY waiter.name ASC, i.due_date ASC NULLS LAST, i.updated_at ASC
   `, [getReminderDateKey()]);
@@ -292,14 +293,15 @@ function buildDailyDigestEmailText(userGroup) {
   const lines = [
     `Hello ${userGroup.name || 'there'},`,
     '',
-    `This is your daily ${reminderTime} reminder for tasks currently waiting for your input.`,
+    `This is your daily ${reminderTime} reminder for tasks currently assigned in the Waiting For field under your name.`,
     '',
-    `Pending tasks: ${userGroup.items.length}`,
+    `Open waiting-for tasks: ${userGroup.items.length}`,
     ''
   ];
 
   userGroup.items.forEach((item, index) => {
     lines.push(`${index + 1}. ${item.item_code} - ${item.title}`);
+    lines.push(`   Status: ${item.status}`);
     lines.push(`   Due status: ${dueStatusLabel(item)}`);
     lines.push(`   Priority: ${item.priority}`);
     lines.push(`   Due date: ${formatDate(item.due_date)}`);
@@ -311,7 +313,7 @@ function buildDailyDigestEmailText(userGroup) {
   });
 
   lines.push('Please update the tracker once your action is completed.');
-  lines.push('This reminder will continue daily while the task status remains Waiting For.');
+  lines.push('This reminder will continue daily while your name remains in the Waiting For field and the task is not Completed.');
   lines.push('Due soon tasks are due today or tomorrow. Overdue tasks have already crossed the due date.');
   lines.push('');
   lines.push('This is an automated notification from NX Services Tracker.');
@@ -329,6 +331,7 @@ function buildDailyDigestEmailHtml(userGroup) {
       <tr style="background:${bg};">
         <td style="padding:8px;border:1px solid ${border};"><strong>${escapeHtml(item.item_code)}</strong></td>
         <td style="padding:8px;border:1px solid ${border};">${escapeHtml(item.title)}</td>
+        <td style="padding:8px;border:1px solid ${border};">${escapeHtml(item.status)}</td>
         <td style="padding:8px;border:1px solid ${border};"><strong>${escapeHtml(dueStatusLabel(item))}</strong></td>
         <td style="padding:8px;border:1px solid ${border};">${escapeHtml(formatDate(item.due_date))}</td>
         <td style="padding:8px;border:1px solid ${border};">${escapeHtml(item.priority)}</td>
@@ -341,8 +344,8 @@ function buildDailyDigestEmailHtml(userGroup) {
   return `
     <div style="font-family:Arial,sans-serif;color:#172033;line-height:1.45;">
       <p>Hello ${escapeHtml(userGroup.name || 'there')},</p>
-      <p>This is your daily <strong>${escapeHtml(reminderTime)}</strong> reminder for tasks currently waiting for your input.</p>
-      <p><strong>Pending tasks:</strong> ${userGroup.items.length}</p>
+      <p>This is your daily <strong>${escapeHtml(reminderTime)}</strong> reminder for tasks currently assigned in the Waiting For field under your name.</p>
+      <p><strong>Open waiting-for tasks:</strong> ${userGroup.items.length}</p>
       <p><span style="background:#fff3cd;padding:4px 8px;border-radius:8px;">Yellow = due today/tomorrow</span>
          <span style="background:#fde2e2;padding:4px 8px;border-radius:8px;">Red = overdue</span></p>
       <table style="border-collapse:collapse;width:100%;border:1px solid #e2e8f0;font-size:13px;">
@@ -350,6 +353,7 @@ function buildDailyDigestEmailHtml(userGroup) {
           <tr style="background:#f8fafc;">
             <th style="text-align:left;padding:8px;border:1px solid #e2e8f0;">Code</th>
             <th style="text-align:left;padding:8px;border:1px solid #e2e8f0;">Task</th>
+            <th style="text-align:left;padding:8px;border:1px solid #e2e8f0;">Status</th>
             <th style="text-align:left;padding:8px;border:1px solid #e2e8f0;">Due status</th>
             <th style="text-align:left;padding:8px;border:1px solid #e2e8f0;">Due date</th>
             <th style="text-align:left;padding:8px;border:1px solid #e2e8f0;">Priority</th>
@@ -361,7 +365,7 @@ function buildDailyDigestEmailHtml(userGroup) {
         <tbody>${rows}</tbody>
       </table>
       <p>Please update the tracker once your action is completed.</p>
-      <p style="color:#64748b;font-size:12px;">This reminder will continue daily while the task status remains Waiting For. This is an automated notification from NX Services Tracker.</p>
+      <p style="color:#64748b;font-size:12px;">This reminder will continue daily while your name remains in the Waiting For field and the task is not Completed. This is an automated notification from NX Services Tracker.</p>
     </div>`;
 }
 

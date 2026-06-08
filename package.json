@@ -1,7 +1,7 @@
 {
   "name": "nx-services-tracker",
-  "version": "1.0.4",
-  "description": "Lightweight NX/services tracker with Apps Script email, daily digest, due highlighting, user deletion, and password controls",
+  "version": "1.0.6",
+  "description": "Lightweight NX/services tracker with case-insensitive login, waiting-for based email alerts, IST daily digest, due highlighting, user deletion, and password controls",
   "main": "src/server.js",
   "scripts": {
     "dev": "nodemon src/server.js",

@@ -83,8 +83,8 @@ async function initDb() {
     );
   `);
 
-  const adminEmail = process.env.ADMIN_EMAIL || 'admin@example.com';
-  const existing = await query('SELECT id FROM users WHERE email = $1', [adminEmail]);
+  const adminEmail = (process.env.ADMIN_EMAIL || 'admin@example.com').trim().toLowerCase();
+  const existing = await query('SELECT id FROM users WHERE LOWER(email) = $1', [adminEmail]);
   if (existing.rows.length === 0) {
     const password = process.env.ADMIN_PASSWORD || 'ChangeMe123!';
     const hash = await bcrypt.hash(password, 10);
