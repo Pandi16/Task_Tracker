@@ -311,6 +311,10 @@ function buildDailyDigestEmailText(userGroup) {
     lines.push(`   Description: ${normalizeText(item.description)}`);
     lines.push('');
   });
+  
+  lines.push('Open NX Services Tracker:');
+  lines.push('http://ustr-mvm-8134.na.uis.unisys.com:3000/items');
+  lines.push('');
 
   lines.push('Please update the tracker once your action is completed.');
   lines.push('This reminder will continue daily while your name remains in the Waiting For field and the task is not Completed.');
@@ -364,6 +368,12 @@ function buildDailyDigestEmailHtml(userGroup) {
         </thead>
         <tbody>${rows}</tbody>
       </table>
+      <p style="margin-top:16px;">
+        <strong>Open NX Services Tracker:</strong>
+        <a href="http://ustr-mvm-8134.na.uis.unisys.com:3000/items" target="_blank">
+          http://ustr-mvm-8134.na.uis.unisys.com:3000/items
+        </a>
+      </p>
       <p>Please update the tracker once your action is completed.</p>
       <p style="color:#64748b;font-size:12px;">This reminder will continue daily while your name remains in the Waiting For field and the task is not Completed. This is an automated notification from NX Services Tracker.</p>
     </div>`;
