@@ -1,6 +1,7 @@
 const cron = require('node-cron');
 const { query } = require('./db');
 const { sendEmail, isEmailConfigured } = require('./mailer');
+const { sendTelegramMessage, isTelegramConfigured } = require('./telegram');
 
 function formatDate(value) {
   if (!value) return 'Not set';
@@ -10,6 +11,18 @@ function formatDate(value) {
 
 function normalizeText(value) {
   return value && String(value).trim() ? String(value).trim() : 'Not provided';
+}
+
+function getTrackerBaseUrl() {
+  return (process.env.TRACKER_BASE_URL || 'http://ustr-mvm-8134.na.uis.unisys.com:3000').replace(/\/$/, '');
+}
+
+function getItemsUrl() {
+  return `${getTrackerBaseUrl()}/items`;
+}
+
+function getItemUrl(item) {
+  return `${getTrackerBaseUrl()}/items/${item.id}`;
 }
 
 function escapeHtml(value) {
@@ -146,6 +159,8 @@ async function getItemForWaitingEmail(itemId) {
       i.*,
       waiter.name AS waiting_for_name,
       waiter.email AS waiting_for_email,
+      waiter.telegram_chat_id AS waiting_for_telegram_chat_id,
+      waiter.telegram_opt_in AS waiting_for_telegram_opt_in,
       owner.name AS owner_name,
       creator.name AS created_by_name,
       CASE
@@ -191,6 +206,8 @@ function buildWaitingForEmailText(item, reasonLabel) {
     'Description:',
     normalizeText(item.description),
     '',
+    `Open item: ${getItemUrl(item)}`,
+    '',
     'Please review this item and update the tracker once your action is completed.',
     '',
     'This is an automated notification from NX Services Tracker.'
@@ -220,6 +237,7 @@ function buildWaitingForEmailHtml(item, reasonLabel) {
         <tr><td style="padding:8px;border:1px solid #e2e8f0;">Created by</td><td style="padding:8px;border:1px solid #e2e8f0;">${escapeHtml(item.created_by_name || 'Not available')}</td></tr>
         <tr><td style="padding:8px;border:1px solid #e2e8f0;">Owner</td><td style="padding:8px;border:1px solid #e2e8f0;">${escapeHtml(item.owner_name || 'Not assigned')}</td></tr>
       </table>
+      <p style="margin-top:16px;"><strong>Open item:</strong> <a href="${escapeHtml(getItemUrl(item))}" target="_blank">${escapeHtml(getItemUrl(item))}</a></p>
       <p><strong>Description:</strong><br>${escapeHtml(normalizeText(item.description)).replace(/\n/g, '<br>')}</p>
       <p>Please review this item and update the tracker once your action is completed.</p>
       <p style="color:#64748b;font-size:12px;">This is an automated notification from NX Services Tracker.</p>
@@ -246,6 +264,24 @@ async function notifyWaitingForItem(itemId, reasonLabel = 'updated') {
   } catch (err) {
     console.error('Waiting-for email failed:', err.message);
   }
+
+  if (item.waiting_for_telegram_opt_in && item.waiting_for_telegram_chat_id) {
+    if (!isTelegramConfigured()) {
+      console.log(`Telegram not configured. Skipped Telegram notification for ${item.item_code}.`);
+    } else {
+      try {
+        await sendTelegramMessage(
+          item.waiting_for_telegram_chat_id,
+          `NX Tracker: ${item.item_code} - ${item.title}
+Status: ${item.status}
+Due: ${formatDate(item.due_date)}
+Open: ${getItemUrl(item)}`
+        );
+      } catch (err) {
+        console.error('Waiting-for Telegram failed:', err.message);
+      }
+    }
+  }
 }
 
 async function getWaitingItemsGroupedByUser() {
@@ -255,6 +291,8 @@ async function getWaitingItemsGroupedByUser() {
       waiter.id AS waiting_for_user_id,
       waiter.name AS waiting_for_name,
       waiter.email AS waiting_for_email,
+      waiter.telegram_chat_id AS waiting_for_telegram_chat_id,
+      waiter.telegram_opt_in AS waiting_for_telegram_opt_in,
       owner.name AS owner_name,
       creator.name AS created_by_name,
       CASE
@@ -279,6 +317,8 @@ async function getWaitingItemsGroupedByUser() {
         userId: item.waiting_for_user_id,
         name: item.waiting_for_name,
         email: item.waiting_for_email,
+        telegramChatId: item.waiting_for_telegram_chat_id,
+        telegramOptIn: item.waiting_for_telegram_opt_in,
         items: []
       });
     }
@@ -311,9 +351,9 @@ function buildDailyDigestEmailText(userGroup) {
     lines.push(`   Description: ${normalizeText(item.description)}`);
     lines.push('');
   });
-  
+
   lines.push('Open NX Services Tracker:');
-  lines.push('http://ustr-mvm-8134.na.uis.unisys.com:3000/items');
+  lines.push(getItemsUrl());
   lines.push('');
 
   lines.push('Please update the tracker once your action is completed.');
@@ -368,12 +408,7 @@ function buildDailyDigestEmailHtml(userGroup) {
         </thead>
         <tbody>${rows}</tbody>
       </table>
-      <p style="margin-top:16px;">
-        <strong>Open NX Services Tracker:</strong>
-        <a href="http://ustr-mvm-8134.na.uis.unisys.com:3000/items" target="_blank">
-          http://ustr-mvm-8134.na.uis.unisys.com:3000/items
-        </a>
-      </p>
+      <p style="margin-top:16px;"><strong>Open NX Services Tracker:</strong> <a href="${escapeHtml(getItemsUrl())}" target="_blank">${escapeHtml(getItemsUrl())}</a></p>
       <p>Please update the tracker once your action is completed.</p>
       <p style="color:#64748b;font-size:12px;">This reminder will continue daily while your name remains in the Waiting For field and the task is not Completed. This is an automated notification from NX Services Tracker.</p>
     </div>`;
@@ -400,6 +435,24 @@ async function sendDailyDigestForUser(userGroup) {
     await sendEmail(userGroup.email, subject, text, html);
   } catch (err) {
     console.error('Daily digest email failed:', err.message);
+  }
+
+  if (userGroup.telegramOptIn && userGroup.telegramChatId) {
+    if (!isTelegramConfigured()) {
+      console.log(`Telegram not configured. Skipped daily Telegram digest for user ${userGroup.userId}.`);
+    } else {
+      try {
+        await sendTelegramMessage(
+          userGroup.telegramChatId,
+          `NX Tracker daily reminder: ${userGroup.items.length} task(s) waiting for you.
+Open: ${getItemsUrl()}
+
+Use /mytasks in Telegram to see your pending items.`
+        );
+      } catch (err) {
+        console.error('Daily digest Telegram failed:', err.message);
+      }
+    }
   }
 }
 

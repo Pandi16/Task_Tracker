@@ -7,7 +7,7 @@
 <body>
   <%- include('partials-header') %>
   <main class="container">
-    <section class="hero"><div><h1>Users</h1><p>Add, update, delete, or reset tracker users.</p></div></section>
+    <section class="hero"><div><h1>Users</h1><p>Add, update, delete, reset tracker users, and link Telegram chat IDs.</p></div></section>
     <section class="two-column">
       <div class="panel">
         <h2>Add User</h2>
@@ -17,6 +17,8 @@
           <label>Name<input name="name" required></label>
           <label>Email<input name="email" type="email" required></label>
           <label>Role<select name="role"><% roles.forEach(role => { %><option><%= role %></option><% }) %></select></label>
+          <label>Telegram Chat ID <span class="muted">optional, get it by sending /id to the bot</span><input name="telegram_chat_id" placeholder="Example: 123456789"></label>
+          <label class="checkbox-label"><input name="telegram_opt_in" type="checkbox" value="1"> Enable Telegram reminders and commands</label>
           <label>Password<input name="password" type="password" required minlength="8"></label>
           <button class="primary-button">Add User</button>
         </form>
@@ -34,6 +36,8 @@
                     <input name="name" required value="<%= user.name %>">
                     <input name="email" type="email" required value="<%= user.email %>">
                     <select name="role"><% roles.forEach(role => { %><option <%= user.role === role ? 'selected' : '' %>><%= role %></option><% }) %></select>
+                    <input name="telegram_chat_id" placeholder="Telegram chat ID" value="<%= user.telegram_chat_id || '' %>">
+                    <label class="mini-checkbox"><input name="telegram_opt_in" type="checkbox" value="1" <%= user.telegram_opt_in ? 'checked' : '' %>> TG</label>
                     <span class="badge"><%= user.is_active ? 'Active' : 'Inactive' %></span>
                     <button type="submit">Update</button>
                   </form>

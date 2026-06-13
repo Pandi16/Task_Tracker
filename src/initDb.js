@@ -16,6 +16,8 @@ async function initDb() {
   `);
 
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS telegram_chat_id VARCHAR(80);`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS telegram_opt_in BOOLEAN NOT NULL DEFAULT FALSE;`);
 
   await query(`
     CREATE TABLE IF NOT EXISTS items (
@@ -80,6 +82,15 @@ async function initDb() {
       sent_on DATE NOT NULL DEFAULT CURRENT_DATE,
       created_at TIMESTAMP NOT NULL DEFAULT NOW(),
       UNIQUE (user_id, sent_on)
+    );
+  `);
+
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS app_settings (
+      key VARCHAR(120) PRIMARY KEY,
+      value TEXT,
+      updated_at TIMESTAMP NOT NULL DEFAULT NOW()
     );
   `);
 
