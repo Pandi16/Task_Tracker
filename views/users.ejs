@@ -8,7 +8,7 @@
   <%- include('partials-header') %>
   <main class="container">
     <section class="hero"><div><h1>Users</h1><p>Add, update, delete, reset tracker users, and link Telegram chat IDs.</p></div></section>
-    <section class="two-column">
+    <section class="users-page-layout">
       <div class="panel">
         <h2>Add User</h2>
         <% if (error) { %><div class="alert"><%= error %></div><% } %>
@@ -26,7 +26,7 @@
       <div class="panel users-panel">
         <h2>Existing Users</h2>
         <p class="muted">Delete removes login access. Old item ownership is cleared and old comments show as “Deleted user”. Password reset for another user is allowed only from <strong><%= superAdminEmail %></strong>.</p>
-        <table>
+        <table class="users-table">
           <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
           <tbody>
             <% users.forEach(user => { %>
